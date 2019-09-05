@@ -37,6 +37,10 @@ resource "google_compute_instance" "vm_instance" {
       image = "debian-cloud/debian-9"
     }
   }
+  
+  metadata = {
+    ssh-keys = "shlepanets:${file(var.ssh_key_public)}"
+  }
 
   network_interface {
     network = google_compute_network.vpc_network.self_link
