@@ -1,0 +1,7 @@
+---
+
+- name: open necessary ports
+  firewalld:
+    port: 8081/tcp
+    permanent: yes
+    state: enabled

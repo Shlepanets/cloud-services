@@ -1,5 +1,13 @@
 ---
 
-- hosts: all, localhost
+- hosts: all
   roles:
     - test
+  tags:
+    - test
+
+- hosts: all
+  roles:
+    - test2
+  tags:
+    - test2

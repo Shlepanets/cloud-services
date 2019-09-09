@@ -1,0 +1,6 @@
+---
+
+- name: test2 role
+  file:
+    path: "./test2.txt"
+    state: touch
