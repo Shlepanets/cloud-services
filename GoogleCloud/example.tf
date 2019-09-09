@@ -34,6 +34,10 @@ resource "google_compute_firewall" "vpc_network" {
     ports    = ["22"]
   }
 
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
 }
 
 #resource "google_compute_address" "vm_static_ip" {
