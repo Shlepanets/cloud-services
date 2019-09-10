@@ -1,16 +1,16 @@
 # Google Cloud
 
-variable "roles" {
-  type	= list(string)
-  description = "roles to be executed on target hosts"
-  default = [ "test", "test2" ]
-}
-
-variable "instances" {
-  type	= list(string)
-  description = "VM id's"
-  default = [ "1", "2" ]
-}
+#variable "roles" {
+#  type	= list(string)
+#  description = "roles to be executed on target hosts"
+#  default = [ "test", "test2" ]
+#}
+#
+#variable "instances" {
+#  type	= list(string)
+#  description = "VM id's"
+#  default = [ "1", "2" ]
+#}
 
 
 provider "google" {
@@ -26,7 +26,8 @@ resource "google_compute_network" "vpc_network" {
 }
 
 resource "google_compute_firewall" "vpc_network" {
-  name    = "test-firewall"
+  for_each = var.role-port
+  name    = "${each.key}-firewall"
   network = "${google_compute_network.vpc_network.name}"
 
   allow {
@@ -36,8 +37,18 @@ resource "google_compute_firewall" "vpc_network" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22"]
+    ports    = var.role-port[each.key]
   }
+
+  target_tags = [ each.key ]
+ 
+#  dynamic "allow" {
+#    for_each = var.ports
+#    content {
+#      protocol = "tcp"
+#      ports    = allow.value
+#    }
+#  }
 }
 
 #resource "google_compute_address" "vm_static_ip" {
@@ -46,11 +57,11 @@ resource "google_compute_firewall" "vpc_network" {
 #}
 
 resource "google_compute_instance" "vm_instance" {
-  count = "${length(var.roles) * length(var.instances)}"
+  count = "${length(var.role-port) * var.teamCount}"
 
-  name         = "instance-${var.roles[floor(count.index / length(var.instances))]}-${var.instances[count.index % length(var.instances)]}"
+  name         = "${keys(var.role-port)[floor(count.index / var.teamCount)]}-${range(var.teamCount)[count.index % var.teamCount]}"
   machine_type = "f1-micro"
-  tags	       = ["web", "test"]
+  tags	       = ["web", keys(var.role-port)[floor(count.index / var.teamCount)]]
 
   boot_disk {
     initialize_params {
@@ -58,9 +69,9 @@ resource "google_compute_instance" "vm_instance" {
     }
   }
   
-  metadata = {
-    ssh-keys = "shlepanets:${file(var.ssh_key_public)}"
-  }
+#  metadata = {
+#    ssh-keys = "shlepanets:${file(var.ssh_key_public)}"
+#  }
 
   network_interface {
     network = google_compute_network.vpc_network.self_link
@@ -69,27 +80,27 @@ resource "google_compute_instance" "vm_instance" {
     }
   }
 
-  provisioner "local-exec" {
-    command = "echo ${self.name}: ${self.network_interface[0].access_config[0].nat_ip}  >> ip-tables.txt"
-  }
+#  provisioner "local-exec" {
+#    command = "echo ${self.name}: ${self.network_interface[0].access_config[0].nat_ip}  >> ip-tables.txt"
+#  }
 #
 #  provisioner "local-exec" {
 #    command = "echo ${google_compute_instance.vm_instance.name}:  ${google_compute_address.vm_static_ip.address}"
 #  }
 #
-  provisioner "remote-exec" {
-    inline = ["sudo touch in-test.ll"]
-
-    connection {
-      type        = "ssh"
-      user        = "shlepanets"
-      private_key = "${file(var.ssh_key_private)}"
-      host        = "${self.network_interface[0].access_config[0].nat_ip}"
-    }
-  }
-
-  provisioner "local-exec" {
-    command = "ansible-playbook -u shlepanets -i '${self.network_interface[0].access_config[0].nat_ip},' --private-key ${var.ssh_key_private} --tags ${var.roles[floor(count.index / length(var.instances))]} main.yml" 
-  }
+#  provisioner "remote-exec" {
+#    inline = ["sudo touch in-test.ll"]
+#
+#    connection {
+#      type        = "ssh"
+#      user        = "shlepanets"
+#      private_key = "${file(var.ssh_key_private)}"
+#      host        = "${self.network_interface[0].access_config[0].nat_ip}"
+#    }
+#  }
+#
+#  provisioner "local-exec" {
+#    command = "ansible-playbook -u shlepanets -i '${self.network_interface[0].access_config[0].nat_ip},' --private-key ${var.ssh_key_private} --tags ${var.roles[floor(count.index / length(var.instances))]} main.yml" 
+#  }
 
 }
